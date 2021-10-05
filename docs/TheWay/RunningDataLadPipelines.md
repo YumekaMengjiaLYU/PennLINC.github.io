@@ -541,7 +541,7 @@ datalad clone "${dssource}" ds
 cd ds
 git remote add outputstore "$pushgitremote"
 git checkout -b "${BRANCH}"
-datalad get -n "inputs/data${subid}"
+datalad get -n "inputs/data/${subid}"
 ```
 
 
