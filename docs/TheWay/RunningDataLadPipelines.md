@@ -483,3 +483,84 @@ Other bootstrap scripts work on the outputs of other bootstraps by
 design, such as [XCP](https://github.com/PennLINC/TheWay/blob/main/scripts/cubic/bootstrap-xcp.sh),
 [QSIRecon](https://github.com/PennLINC/TheWay/blob/main/scripts/cubic/bootstrap-qsirecon.sh),
 and the various Audit scripts.
+
+# Run single subject testing on interactive node using bootstraps
+
+
+
+Before you read on, please ensure that you have already bootstrapped your BIDS application. You can find an example bootstrap for fMRIPrep [here](https://github.com/PennLINC/TheWay/blob/main/scripts/cubic/bootstrap-fmriprep.sh).
+
+
+
+
+## Set up necessary variables
+In your `participant_job.sh`, you should have the following lines:
+```
+dssource="$1"
+pushgitremote="$2"
+subid="$3"
+```
+The variables are normally set when you run qsub_calls.sh as `$1`, `$2` and `$3`, but you don’t get that in an interactive run. Therefore for testing on one subjec on the interactive node, we want to specify the `dssource` (input source), `pushgitremote` (the path to the output branch for the job), and the `subid` (subject id). 
+
+In order to obtain the correct output branch for the chosen subject, you would need to check out the file `qsub_calls.sh` and extract relevant information corresponding to the chosen subject. In your `qsub_calls.sh`, you should have something similar to the following lines:
+```
+qsub -cwd -v DSLOCKFILE=/cbica/projects/RBC/testing/mriqc/mriqc/analysis/.SGE_datalad_lock -N fpsub-997818717 -e /cbica/projects/RBC/testing/mriqc/mriqc/analysis/logs -o /cbica/projects/RBC/testing/mriqc/mriqc/analysis/logs   /cbica/projects/RBC/testing/mriqc/mriqc/analysis/code/participant_job.sh   ria+file:///cbica/projects/RBC/testing/mriqc/mriqc/input_ria#ec535b2a-6328-4b4b-a575-a6a1ffd1f1b5 /cbica/projects/RBC/testing/mriqc/mriqc/output_ria/ec5/35b2a-6328-4b4b-a575-a6a1ffd1f1b5 sub-997818717
+```
+For this example, `subid` is `sub-997818717`, `dssource` is `ria+file:///cbica/projects/RBC/testing/mriqc/mriqc/input_ria#ec535b2a-6328-4b4b-a575-a6a1ffd1f1b5`
+and `pushgitremot` is `/cbica/projects/RBC/testing/mriqc/mriqc/output_ria/ec5/35b2a-6328-4b4b-a575-a6a1ffd1f1b5`. You can choose any other subject and the same pattern applies.
+
+```
+dssource="ria+file:///cbica/projects/RBC/testing/mriqc/mriqc/input_ria#ec535b2a-6328-4b4b-a575-a6a1ffd1f1b5"
+pushgitremote="/cbica/projects/RBC/testing/mriqc/mriqc/output_ria/ec5/35b2a-6328-4b4b-a575-a6a1ffd1f1b5"
+subid="sub-997818717"
+```
+Copy and paste the above three lines into your terminal and hit enter.
+
+
+
+Then you need to create a job branch for the chosen subject. Again in your `participant_job.sh`, you should have the following lines:
+```
+BRANCH="job-${JOB_ID}-${subid}"
+mkdir ${BRANCH}
+cd ${BRANCH}
+```
+When a job is submitted using [qsub](http://gridscheduler.sourceforge.net/htmlman/htmlman1/qsub.html), `JOB_ID` will get automatically assigned by the cluster. For interactive node testing, `JOB_ID` needs to be set manually and we recommend that you set `JOB_ID` to `test`. Otherwise the `set -u` will cause an error when you try to access the variable.
+
+```
+BRANCH="job-test-${subid}"
+mkdir ${BRANCH}
+cd ${BRANCH}
+```
+
+Copy and paste the above three lines into your terminal and hit enter.
+
+## Clone and get the dataset content
+Now we can obtain a new clone (copy) of the single subject dataset in the `${BRANCH}` directory.
+```
+datalad clone "${dssource}" ds
+cd ds
+git remote add outputstore "$pushgitremote"
+git checkout -b "${BRANCH}"
+datalad get -n "inputs/data/${subid}"
+```
+
+
+Copy and paste the above three lines into your terminal and hit enter.
+You should now have `ds` as your working directory.
+
+## Run the BIDS app on the chosen subject
+```
+datalad run \
+    -i code/mriqc_zip.sh \
+    -i inputs/data/${subid} \
+    -i inputs/data/*json \
+    -i pennlinc-containers/.datalad/environments/mriqc-0-16-1/image \
+    --explicit \
+    -o ${subid}_mriqc-0.16.1.zip \
+    -m "mriqc:0.16.1 ${subid}" \
+    "bash ./code/mriqc_zip.sh ${subid}"
+```
+
+
+Copy and paste the above three lines into your terminal and hit enter.
+Now your BIDS app should be runnning on the chosen single subject! Monitor the terminal closely and if you get errors, don't panic! The benefit of testing on a single subject interactively is that you should clearly see where you get stuck.
