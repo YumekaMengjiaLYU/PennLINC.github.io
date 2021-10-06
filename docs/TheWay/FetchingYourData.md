@@ -76,3 +76,99 @@ globusconnect -start &
 3. Using a new or existing conda environment (see [here](https://pennlinc.github.io/docs/pmacs#logging-in-to-pmacs-lpc) for how to activate conda on PMACs), install the [CLI](https://docs.globus.org/cli/) using `pip` and login with `globus login`.
 
 4. Visit [https://docs.globus.org/how-to/get-started/](https://docs.globus.org/how-to/get-started/) to access the File Manager, as in the Local Disk instructions, to start transferring data.
+
+## Datalad addurls from AWS S3
+Now that AWS S3 has become increasingly popular for public data storage, you might want to fetch data from a set of S3 links. `datalad addurls` is a useful command that can retrieve files from web sources and register their location automatically.
+
+For any dataset that comes with a manifest file, the steps are as below:
+
+1. Prepare a well-organized CSV or TSV or JSON file from the given manifest file
+The file should contain columns that specifies, for each entry, the URL and the relative path of the destination file to which the URL’s content will be downloaded. 
+An example file for HCP-D is `hcpd_s3.csv` that contains the following:
+
+```
+submission_id,associated_file,filename
+33171,s3://NDAR_Central_4/submission_33171/HCD0008117_V1_MR/unprocessed/mbPCASLhr/HCD0008117_V1_MR_PCASLhr_SpinEchoFieldMap_PA.json,HCD0008117_V1_MR/unprocessed/mbPCASLhr/HCD0008117_V1_MR_PCASLhr_SpinEchoFieldMap_PA.json
+33171,s3://NDAR_Central_4/submission_33171/manifests/HCD0008117_V1_MR_UnprocPcasl_manifest.json,manifests/HCD0008117_V1_MR_UnprocPcasl_manifest.json
+33171,s3://NDAR_Central_4/submission_33171/HCD0008117_V1_MR/unprocessed/mbPCASLhr/HCD0008117_V1_MR_mbPCASLhr_PA.json,HCD0008117_V1_MR/unprocessed/mbPCASLhr/HCD0008117_V1_MR_mbPCASLhr_PA.json
+```
+In this case, for each entry `associated_file` column holds the s3 links/URL and `filename` column holds the relative path of the destination file to which the URL’s content will be downloaded. 
+2. Obtain relevant AWS S3 credentials
+For security purposes, AWS credentials are needed to access the S3 Objects. For datasets held in [NDA](https://nda.nih.gov/), the web service provides temporary credentials in three parts:
+
+   + an access key, 
+   + a secret key, 
+   + and a session token
+
+
+All three parts are needed in order to authenticate properly with S3 and retrieve data. AWS credentials for [NDA](https://nda.nih.gov/) can be obtained according to the following steps:
+  
+  
+  2a. Download a copy
+  ```
+  wget https://ndar.nih.gov/jnlps/download_manager_client/downloadmanager.zip
+  ```
+  2b. Unzip
+  ```
+  unzip downloadmanager.zip
+  ```
+  2c. Use the command-line download manager to generate temporary Amazon S3 security credentials
+  ```
+  java -jar downloadmanager.jar -g awskeys.txt
+  ```
+  You will be prompted for your ndar username and password, after which you will be able to find your keys in the file awskeys.txt
+  ```
+  cat awskeys.txt
+  ```
+  You will see something like below from your awskeys.txt file.
+  ```
+  accessKey=ASIAJ3GPA2W73EXAMPLE
+secretKey=0i8oIpzWbbVDaybWxmK2vsZsiaSPSdeXEXAMPLE
+sessionToken=AQoDYXdzEPX//////////wEaoAKf5O7+2FhbYIqed/oh69l6FuVuaxpanNbA2yCR/1iYB4cjqQ415FUhDVIN4E4fXF9j8FzV4cTE6vY0dLzOWcUq7dNLvFzJux3oh0bu4bqbZ9EwBAxKb4bNf1pSbUWjQ+Sgrnjz38Uf63jSpxWAUM66mFVOPJhyaHh5lnUREZMNJrwzrkoUn6SR4fTEjXBuQRh9n4idllP+GW7i5XncDqZz+LutYgYMSGjb3x2j1hO1jCyRQ0dtFltFtaq77onMrCnk8k5YCmWyEFgfECtmu0fFE5hpy2NDLg2cFz1aVGN0K2B9vkOPEhG1LIm5+TY8U3MhWQsBnGvGCe0dO/4EOSJfJDhZZe+LsUhVhLJJWnQPRUcqpfNRWU8VnTHxadPLEXAMPLE=
+expirationDate=Tue Nov 18 03:14:16 EST 2014
+
+  ```
+
+
+3. Export the AWS S3 credentials
+Navigate to `~/.aws/credentials` and paste in the information as below:
+```
+[NDAR]
+aws_access_key_id = ASIAJ3GPA2W73EXAMPLE
+aws_secret_access_key = 0i8oIpzWbbVDaybWxmK2vsZsiaSPSdeXEXAMPLE
+aws_session_token = AQoDYXdzEPX//////////wEaoAKf5O7+2FhbYIqed/oh69l6FuVuaxpanNbA2yCR/1iYB4cjqQ415FUhDVIN4E4fXF9j8FzV4cTE6vY0dLzOWcUq7dNLvFzJux3oh0bu4bqbZ9EwBAxKb4bNf1pSbUWjQ+Sgrnjz38Uf63jSpxWAUM66mFVOPJhyaHh5lnUREZMNJrwzrkoUn6SR4fTEjXBuQRh9n4idllP+GW7i5XncDqZz+LutYgYMSGjb3x2j1hO1jCyRQ0dtFltFtaq77onMrCnk8k5YCmWyEFgfECtmu0fFE5hpy2NDLg2cFz1aVGN0K2B9vkOPEhG1LIm5+TY8U3MhWQsBnGvGCe0dO/4EOSJfJDhZZe+LsUhVhLJJWnQPRUcqpfNRWU8VnTHxadPLEXAMPLE=
+
+```
+
+
+4. Check whether you have the datalad special remote enabled
+```
+# this command will return a hyphen-separated string if a remote is enabled
+git annex info | grep datalad
+```
+If not enabled (that is, no string returned), run the `git annex initremote` command. 
+Don't forget to give the remote a name (it is `datalad` here). The following command will configure datalad as a special remote for the annexed contents in the dataset.
+```
+# this command will return a hyphen-separated string if a remote is enabled
+git annex initremote datalad type=external externaltype=datalad encryption=none
+
+```
+5. Create your datalad dataset in the desired directory
+```
+# mydataset is the name you want to give to the datalad dataset
+datalad create mydataset
+cd mydataset
+```
+Take HCP-D as an example, you will run:
+```
+datalad create HCP-D
+cd HCP-D
+```
+
+6. Run datalad addurls command
+It would be helpful to first go over the [documentation](http://docs.datalad.org/en/stable/generated/man/datalad-addurls.html) to have the command tailored to your needs. 
+Take HCP-D as an example, you will run:
+```
+datalad addurls hcpd_3.csv '{associated_file}' '{filename}'
+```
+where `{associated_file}` refers to the `associated_file` column in `hcpd_s3.csv` and `{filename}` refers to the `filename` column in `hcpd_s3.csv`. 
