@@ -18,7 +18,7 @@ has_toc: true
 This section gives an overview of how to get started on PMACS Limited Performance Computing (LPC) cluster. For additional information, check out the [LPC wiki](https://wiki.pmacs.upenn.edu/pub/LPC).
 
 ## Obtaining PMACS LPC Access
-Send your PI your Pennkey, full name, and Penn email, and have them forward this information to pmacs-sys-sci@lists.upenn.edu and request access for you. When access has been granted, you will receive an email with a temporary password through SecureShare. Log in via [this link](https://reset.pmacs.upenn.edu/) with your temporary password and set a new PMACS password. Your Pennkey and new PMACS password will be used to ssh into the LPC and to access the PMACS help desk/ticketing system.
+Send the lab's access manager (Tinashe) your Pennkey, full name, and Penn email, and have them fill a ticket and request access for you. When access has been granted, you will receive an email with a temporary password through SecureShare. Log in via [this link](https://reset.pmacs.upenn.edu/) with your temporary password and set a new PMACS password. Your Pennkey and new PMACS password will be used to ssh into the LPC and to access the PMACS help desk/ticketing system.
 
 ## Logging in to PMACS LPC
 Once you've set up your login credentials for the PMACS LPC, you can SSH into the LPC from anywhere (even without Penn VPN). You can SSH into PMACS in two different ways, depending on what tasks you want to execute:
@@ -30,7 +30,12 @@ $ ssh -Y [username]@sciget.pmacs.upenn.edu #SSH, but has outbound access to use 
 
 Enter PMACS password when prompted.
 
-Again, you can submit jobs on scisub, you get interface with the outside world (e.g., using conda / pip install, wget) on sciget.
+Again, you can submit jobs on `scisub`, and you get interface with the outside world (e.g., using conda / pip install, wget) on `sciget`. We recommend also doing an SSH into `sciget7` as it seems to be the most up-to-date node:
+
+```bash
+$ ssh -Y [username]@sciget.pmacs.upenn.edu
+$ ssh sciget7
+```
 
 In general, there is a set of software libraries and tools we expect you'll need, such as `R`, `conda`, and `FSL`; we've made these available for you in a module. To load this module, simply type the following:
 
