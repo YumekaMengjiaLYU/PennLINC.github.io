@@ -542,6 +542,9 @@ cd ds
 git remote add outputstore "$pushgitremote"
 git checkout -b "${BRANCH}"
 datalad get -n "inputs/data/${subid}"
+
+# Reomve all subjects we're not working on
+(cd inputs/data && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
 ```
 
 
