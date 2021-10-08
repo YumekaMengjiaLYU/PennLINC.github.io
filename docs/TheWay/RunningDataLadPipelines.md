@@ -89,7 +89,7 @@ Here we "bash the bootstrap" to create a `qsiprep` directory:
 ```bash
 $ BIDSAPP=qsiprep
 $ wget https://raw.githubusercontent.com/PennLINC/TheWay/main/scripts/cubic/bootstrap-${BIDSAPP}.sh
-$ bash boostrap-${BIDSAPP}.sh /full/path/to/BIDS /full/path/to/qsiprep-container
+$ bash bootstrap-${BIDSAPP}.sh /full/path/to/BIDS /full/path/to/qsiprep-container
 ```
 
 This will create a `qsiprep` directory that contains numerous other
